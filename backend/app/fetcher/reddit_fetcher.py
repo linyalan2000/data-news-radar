@@ -147,6 +147,7 @@ class RedditFetcher:
             source=_SOURCE,
             external_id=external_id,
             author_handle=author,
+            title=title,
             content=content,
             url=url,
             posted_at=posted_at,

@@ -10,6 +10,7 @@ class Post(BaseModel):
     source: str
     external_id: str
     author_handle: str
+    title: str
     content: str
     url: str
     posted_at: datetime
@@ -17,6 +18,8 @@ class Post(BaseModel):
     relevance_score: Optional[float] = None
     points: Optional[int] = None
     summary_zh: Optional[str] = None
+    topic_group: Optional[str] = None  # hash; groups duplicate/similar news
+    recommendation_reason: Optional[str] = None
     is_relevant: bool
     labels: List[str]
     digest_sent: bool
@@ -80,6 +83,8 @@ class HealthResponse(BaseModel):
     status: str  # "ok" | "degraded"
     db: str  # "connected" | "disconnected"
     last_fetch_at: Optional[datetime] = None
+    scheduler: bool = False
+    wechat_login_needed: bool = False
 
 
 class BookmarkCreate(BaseModel):

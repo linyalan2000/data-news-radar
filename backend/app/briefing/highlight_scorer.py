@@ -77,9 +77,9 @@ def format_highlight_section(posts, reference_time: datetime | None = None, weig
         source = getattr(p, "source", "")
         if source == "github" and url:
             parts = url.rstrip("/").split("/")
-            title = f"{parts[-2]}/{parts[-1]}" if len(parts) >= 2 else (p.content[:80] if p.content else "(no title)")
+            title = f"{parts[-2]}/{parts[-1]}" if len(parts) >= 2 else (p.title or p.content[:80] or "(no title)")
         else:
-            title = p.content[:80] if p.content else "(no title)"
+            title = p.title or p.content[:80] or "(no title)"
         lines.append(
             f"- **[{title}]({p.url})**"
             f" `{p.source}` 綜合分數: {score:.2f}\n"

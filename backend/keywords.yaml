@@ -1,86 +1,153 @@
 high_weight:
-  agent:
-    - ai agent
-    - ai agents
-    - agent skill
-    - agent skills
+  policy:
+    - data regulation
+    - data policy
+    - data governance
+    - data privacy
+    - data protection
+    - data security law
+    - national data administration
+    - 国家数据局
+    - 数据法
+    - 数据条例
+    - 数据法规
+    - 数据政策
+    - 数据治理
+    - 数据安全
+    - 数据合规
+    - 数据产权
+    - 数据流通
+    - 数据交易
+    - 数据要素市场化
+    - 数据二十条
+    - 数据基础制度
+    - 公共数据授权
+    - 数字政府
+    - 数字中国
+    - 政策法规
+    - 管理办法
+    - 规范
+    - 指导意见
+
+  data_industry:
+    - data element
+    - data asset
+    - data assetization
+    - data capitalization
+    - data property rights
+    - data rights
+    - data sovereignty
+    - data trust
+    - data intermediary
+    - data provenance
+    - data lineage
+    - data sharing
+    - data open platform
+    - data exchange
+    - data marketplace
+    - data trading
+    - public data authorization
+    - privacy computing
+    - federated learning
+    - confidential computing
+    - trusted data
+    - data collaboration
+    - data circulation
+    - 数据要素
+    - 数据资产
+    - 数据资产化
+    - 数据资本化
+    - 数据确权
+    - 数据信托
+    - 数据空间
+    - 隐私计算
+    - 联邦学习
+    - 可信数据
+    - 数据共享
+    - 数据开放
+
+  ai:
+    - artificial intelligence
+    - AI model
+    - 大模型
+    - 语言模型
+    - LLM
+    - GPT
+    - GPT-5
+    - 多模态
+    - 机器学习
+    - 深度学习
+    - 神经网络
+    - 自然语言处理
+    - 计算机视觉
+    - 语音识别
+    - AI agent
+    - AI agents
     - multi-agent
-    - multi agent
     - agentic
     - autonomous agent
-    - tool use
-    - tool calling
-    - function calling
-    - mcp
-    - model context protocol
-    - langchain
-    - autogen
-    - crewai
-    - smolagents
-    - rag
-    - retrieval augmented
-    - ai worker
-    - ai workers
-    - ai employee
-    - ai employees
-    - ai workforce
-    - agent workforce
-    - agent roles
-    - agent team
-    - agent squad
-  tool:
-    - langchain
-    - llamaindex
-    - llama index
-    - semantic kernel
-    - dspy
-    - instructor
-    - guidance
-  ai_collaboration_techniques:
-    - graph memory
-    - memory graph
-    - agent memory
-    - claude.md
-    - CLAUDE.md
-    - system prompt pattern
-    - agentic workflow
-    - multi-agent context
-    - context window management
-    - tool use pattern
-    - knowledge graph agent
-    - long-term memory LLM
-    - agent orchestration
+    - AI foundation model
+    - AI application
+    - AI research
+    - AI industry
+    - AI chip
+    - AI算力
+    - NPU
+    - GPU
+    - AI服务器
+    - AI数据中心
+    - 人工智能
+    - 生成式AI
+    - AIGC
+    - 大模型训练
+    - 模型推理
+    - AI开放平台
+    - AI生态
 
-standard_weight:
-  model:
-    - llm
-    - large language model
-    - gpt
-    - claude
-    - gemini
-    - mistral
-    - llama
-    - qwen
-    - fine-tuning
-    - fine tuning
-    - rlhf
-    - sft
-    - alignment
-  ai-general:
-    - artificial intelligence
-    - openai
-    - anthropic
-    - google deepmind
-    - deepmind
-    - hugging face
-    - huggingface
-    - ai research
-    - ai model
-    - foundation model
-  ai_collaboration_techniques:
-    - prompt engineering
-    - vibe coding
-    - AI workflow
-    - MCP server
+  digital:
+    - digital economy
+    - digital transformation
+    - industry digitization
+    - digital industrialization
+    - smart manufacturing
+    - industrial internet
+    - digital twin
+    - smart city
+    - digital finance
+    - fintech
+    - smart healthcare
+    - digital agriculture
+    - smart transportation
+    - digital rural
+    - 数字经济
+    - 数字化转型
+    - 产业数字化
+    - 数字产业化
+    - 智能制造
+    - 工业互联网
+    - 数字乡村
+    - 数字金融
+    - 智慧城市
+    - 数字孪生
+    - 数智化
+    - 数字化
+    - 智慧化
+    - 数字中国
+
+  fujian:
+    - 福建
+    - 福建省
+    - 数字福建
+    - 福州
+    - 厦门
+    - 闽
+    - Fujian
+    - 福建省大数据集团
+    - 省大数据集团
+    - 大数据集团
+    - 数据管理局
+    - 福建数据
+    - 福州数据
+    - 厦门数据
 
 threshold: 5

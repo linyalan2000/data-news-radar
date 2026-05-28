@@ -162,8 +162,9 @@ def search_ai_news(
         date_str = p.posted_at.strftime("%Y-%m-%d") if p.posted_at else "unknown"
         summary = p.summary_zh or p.content[:100]
         labels = ", ".join(p.labels or [])
+        title = p.title or p.content[:80]
         lines.append(
-            f"### [{p.content[:80]}]({p.url})\n"
+            f"### [{title}]({p.url})\n"
             f"- **來源**: {p.source}  **日期**: {date_str}  **分數**: {p.relevance_score:.1f}\n"
             f"- **標籤**: {labels}\n"
             f"- **摘要**: {summary}\n"
@@ -255,8 +256,9 @@ def get_posts_by_category(category: str, days: int = 7, limit: int = 10) -> str:
     for p in posts:
         date_str = p.posted_at.strftime("%Y-%m-%d") if p.posted_at else "unknown"
         summary = p.summary_zh or p.content[:100]
+        title = p.title or p.content[:80]
         lines.append(
-            f"### [{p.content[:80]}]({p.url})\n"
+            f"### [{title}]({p.url})\n"
             f"- **來源**: {p.source}  **日期**: {date_str}  **分數**: {p.relevance_score:.1f}\n"
             f"- **摘要**: {summary}\n"
         )
@@ -566,8 +568,9 @@ def get_posts_by_technique(technique: str, days: int = 7, limit: int = 10) -> st
     for p in posts:
         date_str = p.posted_at.strftime("%Y-%m-%d") if p.posted_at else "unknown"
         summary = p.summary_zh or p.content[:120]
+        title = p.title or p.content[:80]
         lines.append(
-            f"### [{p.content[:80]}]({p.url})\n"
+            f"### [{title}]({p.url})\n"
             f"- **來源**: {p.source}  **日期**: {date_str}  **分數**: {p.relevance_score:.1f}\n"
             f"- **摘要**: {summary}\n"
         )

@@ -10,6 +10,7 @@ export interface Post {
   source: string;
   external_id: string;
   author_handle: string;
+  title: string;
   content: string;
   url: string;
   posted_at: string;
@@ -20,6 +21,9 @@ export interface Post {
   labels: string[];
   digest_sent: boolean;
   discussion_url: string | null;
+  summary_zh: string | null;
+  topic_group: string | null;
+  recommendation_reason: string | null;
 }
 
 export interface PaginatedNewsResponse {
@@ -46,7 +50,7 @@ export interface NewsQueryParams {
   sort?: "date_desc" | "score_desc";
 }
 
-async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...init,
     headers: {
@@ -104,4 +108,25 @@ export function fetchReports(): Promise<ReportListItem[]> {
 
 export function fetchReportById(id: number): Promise<Report> {
   return apiFetch<Report>(`/api/summary/reports/${id}`);
+}
+
+export interface DailyReportSection {
+  title: string;
+  posts: Post[];
+}
+
+export interface DailyReport {
+  date: string;
+  sections: DailyReportSection[];
+  summary: string;
+  generated: boolean;
+}
+
+export function fetchDailyReport(date?: string): Promise<DailyReport> {
+  const qs = date ? `?date=${date}` : "";
+  return apiFetch<DailyReport>(`/api/daily-report${qs}`);
+}
+
+export function fetchDailyReportDates(): Promise<{ dates: string[] }> {
+  return apiFetch<{ dates: string[] }>("/api/daily-report/dates");
 }

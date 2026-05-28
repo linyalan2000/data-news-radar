@@ -94,6 +94,7 @@ class ArxivFetcher:
                     source="arxiv",
                     external_id=arxiv_id,
                     author_handle="arxiv",
+                    title=title,
                     content=content,
                     url=url,
                     posted_at=published,

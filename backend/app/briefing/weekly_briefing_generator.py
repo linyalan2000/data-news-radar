@@ -82,7 +82,8 @@ class WeeklyBriefingGenerator:
         for p in posts[:50]:  # cap to control prompt size
             date_str = p.posted_at.strftime("%Y-%m-%d") if p.posted_at else "unknown"
             summary = p.summary_zh or p.content[:100]
-            lines.append(f"- [{p.content[:80]}]({p.url}) [{p.source}] {date_str}\n  {summary}")
+            title = p.title or p.content[:80]
+        lines.append(f"- [{title}]({p.url}) [{p.source}] {date_str}\n  {summary}")
         return "\n".join(lines)
 
     def _call_groq(self, report_content: str) -> str:

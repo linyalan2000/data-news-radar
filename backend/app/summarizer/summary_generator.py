@@ -42,6 +42,9 @@ class SummaryGenerator:
             if getattr(post, "summary_zh", None):
                 consecutive_failures = 0
                 continue
+            content = getattr(post, "content", "") or ""
+            if len(content) < 200:
+                continue
             if consecutive_failures >= _CIRCUIT_BREAKER_THRESHOLD:
                 logger.error(
                     "Gemini circuit breaker open after %d failures — skipping remaining posts",
@@ -157,11 +160,11 @@ def _format_post_entry(post) -> list[str]:
     summary = getattr(post, "summary_zh", None) or "（摘要待生成）"
     type_label = _post_type_label(post)
 
-    # GitHub: use "owner/repo" as title; Reddit/HN: use first 80 chars of content
+    # GitHub: use "owner/repo" as title; others: use post.title or first 80 chars of content
     if source == "github" and url:
         title = _repo_name_from_url(url)
     else:
-        title = (getattr(post, "content", "") or "")[:80]
+        title = getattr(post, "title", None) or (getattr(post, "content", "") or "")[:80]
 
     source_badge = {"hackernews": "HN", "reddit": "Reddit", "github": "GitHub"}.get(source, source)
     badge_str = f"`{source_badge}`"

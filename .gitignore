@@ -41,6 +41,16 @@ briefings/
 # Test artifacts
 test-results/
 dashboard/tsconfig.tsbuildinfo
+screenshot.png
+wechat_qr.png
+
+# Local agent/browser state
+.playwright-mcp/
+.sisyphus/
+
+# Fetcher local auth/cache
+backend/app/fetcher/token.json
+backend/app/fetcher/fakeid_cache.json
 
 # Claude Code local config
 .claude/

@@ -28,6 +28,7 @@ class Post(Base):
     source = Column(String, nullable=False)       # "hackernews" | "reddit" | "github"
     external_id = Column(String, nullable=False)  # source-specific unique ID
     author_handle = Column(String, nullable=False)
+    title = Column(Text, nullable=False, default="")  # extracted title, populated by fetcher
     content = Column(Text, nullable=False)
     url = Column(String, nullable=False)
     posted_at = Column(DateTime(timezone=True), nullable=False)
@@ -44,6 +45,9 @@ class Post(Base):
     email_sent = Column(Boolean, nullable=False, default=False)
     webhook_sent = Column(Boolean, nullable=False, default=False)
     summary_zh = Column(Text, nullable=True)
+    topic_group = Column(String(32), nullable=True)  # hash of normalized title; groups duplicate/similar news
+    recommendation_reason = Column(Text, nullable=True)  # editor's recommendation reason (aihot, etc.)
+    relevance_note = Column(Text, nullable=True)  # LLM judgment result; NULL=unjudged, populated=reason for skipping
     embedding = Column(LargeBinary, nullable=True)  # serialized float32 vector
 
     bookmarks = relationship("Bookmark", back_populates="post", cascade="all, delete-orphan")
@@ -55,6 +59,7 @@ class Post(Base):
         Index("ix_posts_is_relevant", "is_relevant"),
         Index("ix_posts_source", "source"),
         Index("ix_posts_url", "url"),
+        Index("ix_posts_topic_group", "topic_group"),
     )
 
 

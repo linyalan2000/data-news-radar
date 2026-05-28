@@ -1,9 +1,12 @@
 """News listing and detail endpoints."""
+import logging
 from datetime import date, datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from app.api.auth import require_api_key
 from app.api.deps import get_db, get_news_store

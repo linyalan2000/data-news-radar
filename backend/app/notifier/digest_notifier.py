@@ -26,6 +26,10 @@ class DigestNotifier:
         gemini_model: str = "gemini-2.0-flash",
         groq_api_key: str = "",
         groq_model: str = "llama-3.3-70b-versatile",
+        novita_api_key: str = "",
+        novita_model: str = "ring-2.6-1t",
+        minimax_api_key: str = "",
+        minimax_model: str = "MiniMax-M2.7",
         lookback_hours: int = 48,
         briefings_output_dir: Optional[str] = None,
         user_context: str = "",
@@ -41,6 +45,10 @@ class DigestNotifier:
         self._gemini_model = gemini_model
         self._groq_api_key = groq_api_key
         self._groq_model = groq_model
+        self._novita_api_key = novita_api_key
+        self._novita_model = novita_model
+        self._minimax_api_key = minimax_api_key
+        self._minimax_model = minimax_model
         self._lookback_hours = lookback_hours
         self._briefings_output_dir = briefings_output_dir
         self._user_context = user_context
@@ -64,14 +72,9 @@ class DigestNotifier:
                 logger.info("DigestNotifier: adding %d semantic ai-technique posts", len(technique_posts))
                 posts = posts + technique_posts
 
-        # AI summarization — optional, gated by GROQ_API_KEY or GEMINI_API_KEY
         report_markdown: Optional[str] = None
-        if self._groq_api_key or self._gemini_api_key:
+        if self._minimax_api_key or self._groq_api_key or self._gemini_api_key:
             report_markdown = self._run_summarization(posts, reference_time=reference_time)
-
-        # Generate developer briefing from the digest report
-        if report_markdown and self._groq_api_key and self._briefings_output_dir:
-            self._run_briefing(report_markdown, reference_time=reference_time, posts=posts)
 
         post_ids = [p.id for p in posts]
 
@@ -108,7 +111,15 @@ class DigestNotifier:
         try:
             from app.summarizer.summary_generator import SummaryGenerator
 
-            if self._groq_api_key:
+            if self._novita_api_key:
+                from app.summarizer.novita_client import NovitaClient
+                client = NovitaClient(self._novita_api_key, self._novita_model)
+                model_used = self._novita_model
+            elif self._minimax_api_key:
+                from app.summarizer.minimax_client import MinimaxClient
+                client = MinimaxClient(self._minimax_api_key, self._minimax_model)
+                model_used = self._minimax_model
+            elif self._groq_api_key:
                 from app.summarizer.groq_client import GroqClient
                 client = GroqClient(self._groq_api_key, self._groq_model)
                 model_used = self._groq_model

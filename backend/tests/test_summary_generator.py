@@ -7,9 +7,9 @@ import pytest
 from app.summarizer.summary_generator import SummaryGenerator
 
 
-def _make_post(post_id=1, source="hackernews", content="AI agent tool",
+def _make_post(post_id=1, source="hackernews", content="AI agent tool that helps developers build better software fast with machine learning algorithms and natural language processing capabilities for text analysis and knowledge management across multiple domains and use cases including search and retrieval augmentation",
                labels=None, points=None, summary_zh=None,
-               url="https://example.com", discussion_url=None):
+               url="https://example.com", discussion_url=None, title=None):
     post = MagicMock()
     post.id = post_id
     post.source = source
@@ -19,6 +19,7 @@ def _make_post(post_id=1, source="hackernews", content="AI agent tool",
     post.summary_zh = summary_zh
     post.url = url
     post.discussion_url = discussion_url
+    post.title = title
     return post
 
 
@@ -42,7 +43,8 @@ def test_summarize_batch_calls_client_for_posts_without_summary(generator, mock_
     mocker.patch("app.summarizer.summary_generator.time.sleep")
     news_store.upsert_post({
         "source": "hackernews", "external_id": "b1",
-        "author_handle": "u", "content": "AI agent",
+        "author_handle": "u",
+        "content": "AI agent tool that helps developers build better software fast with machine learning algorithms and natural language processing capabilities for text analysis and knowledge management across multiple domains and use cases",
         "url": "https://example.com",
         "posted_at": datetime(2026, 3, 1, tzinfo=timezone.utc),
     })
@@ -71,7 +73,8 @@ def test_summarize_batch_saves_summary_to_store(generator, mock_client, news_sto
     mocker.patch("app.summarizer.summary_generator.time.sleep")
     news_store.upsert_post({
         "source": "hackernews", "external_id": "save1",
-        "author_handle": "u", "content": "AI agent",
+        "author_handle": "u",
+        "content": "AI agent tool that helps developers build better software fast with machine learning algorithms and natural language processing capabilities for text analysis and knowledge management across multiple domains",
         "url": "https://example.com",
         "posted_at": datetime(2026, 3, 1, tzinfo=timezone.utc),
     })

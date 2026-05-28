@@ -1,4 +1,5 @@
 """Application configuration loaded from environment variables."""
+
 from pathlib import Path
 from typing import Optional
 
@@ -20,15 +21,27 @@ class Settings(BaseSettings):
     hn_fetch_limit: int = 100
 
     # Reddit
-    reddit_subreddits: str = "MachineLearning,LocalLLaMA,singularity,artificial,ClaudeAI,PromptEngineering"
+    reddit_subreddits: str = (
+        "MachineLearning,LocalLLaMA,singularity,artificial,ClaudeAI,PromptEngineering"
+    )
     reddit_keywords: str = ""
     reddit_fetch_limit: int = 100
 
     # GitHub
-    github_monitored_repos: str = "langchain-ai/langchain,microsoft/autogen,ollama/ollama,ggerganov/llama.cpp"
+    github_monitored_repos: str = (
+        "langchain-ai/langchain,microsoft/autogen,ollama/ollama,ggerganov/llama.cpp"
+    )
     github_keywords: str = "ai agent,llm,rag,mcp,agentic"
     github_fetch_limit: int = 30
     github_token: str = ""
+
+    # RSS feeds (comma-separated URLs for generic RSS/Atom feeds)
+    rss_feeds: str = ""
+    rss_fetch_limit: int = 50
+
+    # WeChat Official Account (mp.weixin.qq.com internal API)
+    wechat_accounts: str = ""
+    wechat_fetch_limit: int = 30
 
     # Scheduler
     fetch_interval_minutes: int = 15
@@ -60,6 +73,14 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
 
+    # Novita AI Summarizer (optional — takes priority over Groq & Gemini if set)
+    novita_api_key: str = ""
+    novita_model: str = "ring-2.6-1t"
+
+    # MiniMax Summarizer (optional — takes priority over Novita/Groq/Gemini if set)
+    minimax_api_key: str = ""
+    minimax_model: str = "MiniMax-M2.7"
+
     # Daily briefing output directory (relative to repo root, or absolute; empty = disabled)
     briefings_output_dir: str = "briefings"
 
@@ -83,17 +104,30 @@ class Settings(BaseSettings):
     arxiv_categories: str = "cs.AI,cs.LG,cs.CL"
     arxiv_max_results: int = 50
 
+    # 财联社 fetcher
+    cls_keywords: str = "人工智能,数据要素,数智化,数字中国,数字福建,刘烈宏,国家数据局,国家数据发展研究院,高质量数据集"
+    cls_fetch_limit: int = 50
+
+    # AIHOT fetcher (aihot.virxact.com)
+    aihot_fetch_limit: int = 30
+
     # v2 Feature Flags — all default False for safe rollout
     feature_arxiv_fetcher: bool = False
+    feature_aihot_fetcher: bool = False
+    feature_gov_fetcher: bool = False
     feature_fts_search: bool = False
     feature_weekly_briefing: bool = False
     feature_highlight_scorer: bool = False
     feature_bookmarks: bool = False
     feature_embeddings: bool = False
+    feature_bidding_fetcher: bool = False
+    feature_cls_fetcher: bool = False
 
     # Embeddings
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
-    hf_api_token: str = ""  # fallback: HF Inference API when set and feature_embeddings=True
+    hf_api_token: str = (
+        ""  # fallback: HF Inference API when set and feature_embeddings=True
+    )
 
     # Personalization
     user_context: str = ""
@@ -115,11 +149,15 @@ class Settings(BaseSettings):
     def FEATURES(self) -> dict:
         return {
             "arxiv_fetcher": self.feature_arxiv_fetcher,
+            "gov_fetcher": self.feature_gov_fetcher,
             "fts_search": self.feature_fts_search,
             "weekly_briefing": self.feature_weekly_briefing,
             "highlight_scorer": self.feature_highlight_scorer,
             "bookmarks": self.feature_bookmarks,
             "embeddings": self.feature_embeddings,
+            "bidding_fetcher": self.feature_bidding_fetcher,
+            "cls_fetcher": self.feature_cls_fetcher,
+            "aihot_fetcher": self.feature_aihot_fetcher,
         }
 
     @property
@@ -147,8 +185,28 @@ class Settings(BaseSettings):
         return [k.strip() for k in self.github_keywords.split(",") if k.strip()]
 
     @property
+    def rss_feeds_list(self) -> list[str]:
+        return [f.strip() for f in self.rss_feeds.split(",") if f.strip()]
+
+    @property
+    def wechat_accounts_list(self) -> list[str]:
+        return [a.strip() for a in self.wechat_accounts.split(",") if a.strip()]
+
+    @property
+    def cls_keywords_list(self) -> list[str]:
+        return [k.strip() for k in self.cls_keywords.split(",") if k.strip()]
+
+    @property
     def smtp_config(self) -> Optional[dict]:
-        if not all([self.smtp_host, self.smtp_user, self.smtp_password, self.digest_email_from, self.digest_email_to]):
+        if not all(
+            [
+                self.smtp_host,
+                self.smtp_user,
+                self.smtp_password,
+                self.digest_email_from,
+                self.digest_email_to,
+            ]
+        ):
             return None
         return {
             "host": self.smtp_host,
@@ -158,7 +216,6 @@ class Settings(BaseSettings):
             "from": self.digest_email_from,
             "to": self.digest_email_to,
         }
-
 
 
 settings = Settings()

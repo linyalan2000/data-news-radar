@@ -2,13 +2,17 @@
 import logging
 import threading
 from contextlib import asynccontextmanager
+
+# Ensure apscheduler logs are visible
+logging.getLogger("apscheduler").setLevel(logging.DEBUG)
+logging.getLogger("apscheduler.scheduler").addHandler(logging.StreamHandler())
 from datetime import date, datetime, timedelta, timezone
 from typing import List
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import digest, health, news, summary
+from app.api.routes import daily_report, digest, health, news, summary, wechat_qr, settings_api, trigger
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -93,6 +97,8 @@ def _catchup_digest() -> None:
                     gemini_model=settings.gemini_model,
                     groq_api_key=settings.groq_api_key,
                     groq_model=settings.groq_model,
+                    minimax_api_key=settings.minimax_api_key,
+                    minimax_model=settings.minimax_model,
                     lookback_hours=settings.digest_lookback_hours,
                     briefings_output_dir=settings.briefings_output_dir_resolved,
                     user_context=settings.user_context,
@@ -112,7 +118,11 @@ def _catchup_digest() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     from app.pipeline.scheduler import start_scheduler, stop_scheduler
-    start_scheduler()
+    try:
+        start_scheduler()
+        logger.info("Scheduler started successfully")
+    except Exception as e:
+        logger.error("Scheduler failed to start: %s", e, exc_info=True)
     threading.Thread(target=_catchup_digest, daemon=True).start()
     yield
     stop_scheduler()
@@ -131,6 +141,10 @@ app.include_router(health.router)
 app.include_router(news.router)
 app.include_router(digest.router)
 app.include_router(summary.router)
+app.include_router(daily_report.router)
+app.include_router(wechat_qr.router)
+app.include_router(settings_api.router)
+app.include_router(trigger.router)
 
 if settings.FEATURES.get("bookmarks"):
     from app.api.routes import bookmarks

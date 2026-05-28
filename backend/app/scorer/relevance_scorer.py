@@ -1,4 +1,5 @@
 """RelevanceScorer: TF-IDF + keyword weight scoring for X posts."""
+
 from __future__ import annotations
 
 import logging
@@ -47,6 +48,26 @@ DEFAULT_KEYWORDS: dict = {
             "instructor",
             "guidance",
         ],
+        "fujian": [
+            "数据要素",
+            "数字福建",
+            "数据管理",
+            "数据流通",
+            "数据交易",
+            "可信数据空间",
+            "数据标注",
+            "高质量数据集",
+            "数据企业",
+            "数据产业",
+            "公共数据",
+            "数据资产",
+            "数字化转型",
+            "人工智能",
+            "大数据",
+            "福建省",
+            "福建大数据",
+            "数字经济",
+        ],
     },
     "standard_weight": {
         "model": [
@@ -82,11 +103,11 @@ DEFAULT_KEYWORDS: dict = {
 
 # Label mapping: keyword group name → label string
 _GROUP_LABEL_MAP: dict[str, str] = {
-    "agent": "ai-agent",
-    "tool": "ai-tool",
-    "model": "ai-model",
-    "ai-general": "ai-model",
-    "ai_collaboration_techniques": "ai-technique",
+    "policy": "政策法规",
+    "data_industry": "数据要素",
+    "ai": "人工智能",
+    "digital": "数智化",
+    "fujian": "福建本地",
 }
 
 # Weight per tier
@@ -142,28 +163,33 @@ class RelevanceScorer:
     def _compute_score(self, post: dict) -> dict:
         content = (post.get("content") or "").lower()
         raw_score = 0.0
-        fired_groups: set[str] = set()
+        group_scores: dict[str, float] = {}
 
         for group_name, terms in self._keywords.get("high_weight", {}).items():
             for term in terms:
                 if _term_in_text(term, content):
                     raw_score += _HIGH_WEIGHT
-                    fired_groups.add(group_name)
+                    group_scores[group_name] = group_scores.get(group_name, 0) + _HIGH_WEIGHT
 
         for group_name, terms in self._keywords.get("standard_weight", {}).items():
             for term in terms:
                 if _term_in_text(term, content):
                     raw_score += _STANDARD_WEIGHT
-                    fired_groups.add(group_name)
+                    group_scores[group_name] = group_scores.get(group_name, 0) + _STANDARD_WEIGHT
 
         score = _normalize(raw_score)
         # Community vote bonus: up to +3 pts for high-vote posts (300+ votes → max bonus)
         points = post.get("points") or 0
         score = min(10.0, score + min(points / 100, 3.0))
-        labels = _groups_to_labels(fired_groups) if fired_groups else ["other"]
+        top_groups = sorted(group_scores, key=group_scores.get, reverse=True)[:2]
+        labels = _groups_to_labels(top_groups) if top_groups else ["other"]
         is_relevant = score >= self.threshold
 
-        return {"relevance_score": round(score, 2), "labels": labels, "is_relevant": is_relevant}
+        return {
+            "relevance_score": round(score, 2),
+            "labels": labels,
+            "is_relevant": is_relevant,
+        }
 
     def _load_config(self, path: Optional[str]) -> dict:
         if path:
@@ -183,9 +209,11 @@ class RelevanceScorer:
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _term_in_text(term: str, text: str) -> bool:
-    # Use word-boundary-aware search for single words, substring for phrases
     if " " in term or "-" in term:
+        return term in text
+    if any(ord(c) > 127 for c in term):
         return term in text
     return bool(re.search(rf"\b{re.escape(term)}\b", text))
 

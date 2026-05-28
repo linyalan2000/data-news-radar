@@ -11,5 +11,8 @@ class SourcePost:
     content: str      # title + body, truncated to 2000 chars
     url: str
     posted_at: datetime  # UTC
+    title: str = ""   # extracted title (populated by fetcher); display code uses this
     discussion_url: str | None = None  # HN discussion link; None for Reddit/GitHub
     points: int | None = None  # community votes: HN points, Reddit score, GitHub stars
+    labels: list[str] | None = None  # opportunity/ topic tags
+    recommendation_reason: str | None = None  # editor's recommendation reason (aihot, etc.)

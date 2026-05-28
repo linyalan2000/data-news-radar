@@ -41,8 +41,10 @@
 | 007 | bookmarks table |
 | 008 | email_sent + webhook_sent 欄位 |
 | 009 | embedding BLOB 欄位 |
+| 010 | relevance_note 欄位 |
+| 011 | title 欄位 |
 
-現在 `alembic upgrade head` 會跑到 009。
+現在 `alembic upgrade head` 會跑到 011。
 
 ---
 
@@ -66,7 +68,7 @@ threshold = 5.0  (is_relevant=True 條件)
 - `title` → `substr(content, 1, 100)`
 - `summary` → `COALESCE(summary_zh, '')`
 
-這是刻意設計，不是 bug。
+Migration 011 已加入獨立 `title` 欄位，所有 fetcher 在抓取時自動填入標題。顯示程式碼優先使用 `p.title`，fallback 到 `p.content[:80]`。
 
 ### Briefing 流程
 
@@ -287,7 +289,7 @@ with e.connect() as c:
 
 ## 已知限制與設計決策
 
-1. **FTS5 workaround**：`articles_fts` 的 title 是 `substr(content, 1, 100)`，搜尋品質受限於 content 前 100 字。
+1. **FTS5 workaround**：`articles_fts` 的 title 是 `substr(content, 1, 100)`，搜尋品質受限於 content 前 100 字。Migration 011 已加入獨立 `title` 欄位，但 FTS5 尚未重建。
 2. **Threshold 未調整**：目前 `relevance_threshold=5.0`，Group 1 完成後觀察再決定是否提高至 7.0。
 3. **ArXiv 排除 daily briefing**：ArXiv 文章不進入每日 highlight 和 briefing（太學術）。週報單獨處理。
 4. **Digest job 狀態 in-memory**：`/api/digest/jobs/{job_id}` 的狀態存在進程記憶體，重啟後消失。
@@ -304,3 +306,12 @@ with e.connect() as c:
 - **新功能預設 false**：所有新 feature 都透過 `FEATURES` dict 控制，預設關閉
 - **不改 threshold**：`relevance_threshold=5.0` 在觀察期結束前不調整
 - **Groq 優先**：摘要和 briefing 都是 `GROQ_API_KEY` 優先，Gemini 作 fallback
+
+---
+
+## Agent 行為規範
+
+- **每條回復末尾必須語音播報**：每次任務結束，用 `say -v Tingting "任务完成"` 語音播報，不可遺漏。
+- **改完代碼後自審**：每次修改後運行相關測試確認無損，必要時跑 `review-work` 檢查。
+- **問題先解釋再動手**：用戶問「為什麼」時，先解釋邏輯，不要直接改代碼。
+- **測完摘要要寫回數據庫**：調試或測試 `summarize_post` 後，務必用 `store.update_post_summary(id, summary)` 寫回，否則新摘要只存在於變量中，數據庫未更新。

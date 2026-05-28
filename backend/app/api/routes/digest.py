@@ -30,6 +30,8 @@ def _run_digest_background(job_id: str, db: Session) -> None:
             gemini_model=settings.gemini_model,
             groq_api_key=settings.groq_api_key,
             groq_model=settings.groq_model,
+            minimax_api_key=settings.minimax_api_key,
+            minimax_model=settings.minimax_model,
             lookback_hours=settings.digest_lookback_hours,
             briefings_output_dir=settings.briefings_output_dir_resolved,
             user_context=settings.user_context,

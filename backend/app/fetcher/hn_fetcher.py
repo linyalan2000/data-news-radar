@@ -87,7 +87,7 @@ class HackerNewsFetcher:
             return None
         title = hit.get("title") or ""
         body = hit.get("story_text") or ""
-        content = (title + " " + body).strip()[:2000]
+        content = (title + "\n" + body).strip()[:2000]
         url = hit.get("url") or f"https://news.ycombinator.com/item?id={external_id}"
         author = hit.get("author") or "unknown"
         created = hit.get("created_at")
@@ -102,6 +102,7 @@ class HackerNewsFetcher:
             source=_SOURCE,
             external_id=external_id,
             author_handle=author,
+            title=title,
             content=content,
             url=url,
             posted_at=posted_at,

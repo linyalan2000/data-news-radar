@@ -1,4 +1,5 @@
 """NewsStore: persistence layer for fetched and scored posts."""
+
 from datetime import date, datetime, timezone
 from typing import Optional
 
@@ -24,18 +25,25 @@ class NewsStore:
         """Insert or update a post by (source, external_id)."""
         existing = (
             self._session.query(Post)
-            .filter(Post.source == data["source"], Post.external_id == data["external_id"])
+            .filter(
+                Post.source == data["source"], Post.external_id == data["external_id"]
+            )
             .first()
         )
         if existing:
-            existing.relevance_score = data.get("relevance_score", existing.relevance_score)
+            existing.relevance_score = data.get(
+                "relevance_score", existing.relevance_score
+            )
             existing.is_relevant = data.get("is_relevant", existing.is_relevant)
             existing.labels = data.get("labels", existing.labels)
+            if data.get("title"):
+                existing.title = data["title"]
         else:
             post = Post(
                 source=data["source"],
                 external_id=data["external_id"],
                 author_handle=data["author_handle"],
+                title=data.get("title", ""),
                 content=data["content"],
                 url=data["url"],
                 posted_at=data["posted_at"],
@@ -45,14 +53,30 @@ class NewsStore:
                 is_relevant=data.get("is_relevant", False),
                 labels=data.get("labels", []),
                 digest_sent=data.get("digest_sent", False),
+                recommendation_reason=data.get("recommendation_reason"),
             )
             self._session.add(post)
         self._session.flush()
 
     def update_post_summary(self, post_id: int, summary_zh: str) -> None:
-        """Cache the zh-TW summary for a post."""
+        """Cache the zh-CN summary for a post."""
         self._session.query(Post).filter(Post.id == post_id).update(
             {"summary_zh": summary_zh}, synchronize_session="fetch"
+        )
+        self._session.flush()
+
+    def update_topic_group(self, post_id: int, topic_group: str | None) -> None:
+        """Assign a topic_group to a post for duplicate/similar news folding."""
+        self._session.query(Post).filter(Post.id == post_id).update(
+            {"topic_group": topic_group}, synchronize_session="fetch"
+        )
+        self._session.flush()
+
+    def update_post_relevance_note(self, post_id: int, note: str, is_relevant: bool = False) -> None:
+        """Store the LLM relevance judgment result and update is_relevant flag."""
+        self._session.query(Post).filter(Post.id == post_id).update(
+            {"relevance_note": note, "is_relevant": is_relevant},
+            synchronize_session="fetch",
         )
         self._session.flush()
 
@@ -79,11 +103,7 @@ class NewsStore:
 
     def get_latest_report(self) -> Optional[Report]:
         """Return the most recently generated report, or None."""
-        return (
-            self._session.query(Report)
-            .order_by(Report.generated_at.desc())
-            .first()
-        )
+        return self._session.query(Report).order_by(Report.generated_at.desc()).first()
 
     def mark_digest_sent(self, post_ids: list[int]) -> None:
         """Mark the given post IDs as digest_sent=True (deprecated — use channel-specific methods)."""
@@ -112,6 +132,23 @@ class NewsStore:
             {"embedding": embedding_bytes}, synchronize_session="fetch"
         )
         self._session.flush()
+
+    def get_posts_without_summary(self, limit: int = 50) -> list:
+        """Return posts that don't have a valid summary yet.
+
+        Includes NULL, '不相关', and empty string so they get retried.
+        """
+        return (
+            self._session.query(Post)
+            .filter(
+                (Post.summary_zh.is_(None))
+                | (Post.summary_zh == "不相关")
+                | (Post.summary_zh == "")
+            )
+            .order_by(Post.fetched_at.desc())
+            .limit(limit)
+            .all()
+        )
 
     def rollback(self) -> None:
         """Roll back the current transaction, resetting any pending error state."""
@@ -186,26 +223,33 @@ class NewsStore:
         fts_active = False
         if fts_enabled and keyword:
             fts_ids = self._fts_search(keyword)
-            if fts_ids is not None:
+            if fts_ids is not None and fts_ids:
                 fts_active = True
                 q = self._session.query(Post).filter(Post.id.in_(fts_ids))
             else:
-                q = self._session.query(Post)  # FTS unavailable, fall through to ilike
+                q = self._session.query(
+                    Post
+                )  # FTS empty or unavailable → ilike fallback
         else:
             q = self._session.query(Post)
 
         q = self._apply_filters(
             q,
-            label=label, min_score=min_score, from_date=from_date,
-            to_date=to_date, since=since,
+            label=label,
+            min_score=min_score,
+            from_date=from_date,
+            to_date=to_date,
+            since=since,
             keyword=keyword if not fts_active else None,
-            source=source, is_relevant=is_relevant,
-            date_from=date_from, date_to=date_to,
+            source=source,
+            is_relevant=is_relevant,
+            date_from=date_from,
+            date_to=date_to,
         )
         if sort == "score_desc":
-            q = q.order_by(Post.relevance_score.desc().nullslast())
+            q = q.order_by(Post.relevance_score.desc().nullslast(), Post.id.asc())
         else:
-            q = q.order_by(Post.posted_at.desc())
+            q = q.order_by(Post.posted_at.desc(), Post.id.asc())
         offset = (page - 1) * per_page
         return q.offset(offset).limit(per_page).all()
 
@@ -227,20 +271,27 @@ class NewsStore:
         fts_active = False
         if fts_enabled and keyword:
             fts_ids = self._fts_search(keyword)
-            if fts_ids is not None:
+            if fts_ids is not None and fts_ids:
                 fts_active = True
-                q = self._session.query(func.count(Post.id)).filter(Post.id.in_(fts_ids))
+                q = self._session.query(func.count(Post.id)).filter(
+                    Post.id.in_(fts_ids)
+                )
             else:
                 q = self._session.query(func.count(Post.id))
         else:
             q = self._session.query(func.count(Post.id))
         q = self._apply_filters(
             q,
-            label=label, min_score=min_score, from_date=from_date,
-            to_date=to_date, since=since,
+            label=label,
+            min_score=min_score,
+            from_date=from_date,
+            to_date=to_date,
+            since=since,
             keyword=keyword if not fts_active else None,
-            source=source, is_relevant=is_relevant,
-            date_from=date_from, date_to=date_to,
+            source=source,
+            is_relevant=is_relevant,
+            date_from=date_from,
+            date_to=date_to,
         )
         return q.scalar() or 0
 
@@ -248,7 +299,9 @@ class NewsStore:
         """Return Post IDs matching keyword via FTS5, or None if FTS table unavailable."""
         try:
             rows = self._session.execute(
-                text("SELECT rowid FROM articles_fts WHERE articles_fts MATCH :q ORDER BY rank"),
+                text(
+                    "SELECT rowid FROM articles_fts WHERE articles_fts MATCH :q ORDER BY rank"
+                ),
                 {"q": keyword},
             ).fetchall()
             return [r[0] for r in rows]
@@ -258,9 +311,8 @@ class NewsStore:
     def get_unsent_relevant_posts(
         self, limit: int = 20, since: Optional[datetime] = None
     ) -> list[Post]:
-        q = (
-            self._session.query(Post)
-            .filter(Post.is_relevant == True, Post.digest_sent == False)
+        q = self._session.query(Post).filter(
+            Post.is_relevant == True, Post.digest_sent == False
         )
         if since is not None:
             q = q.filter(Post.posted_at >= since)
@@ -271,6 +323,16 @@ class NewsStore:
         return (
             self._session.query(Post)
             .filter(Post.embedding.is_(None))
+            .order_by(Post.posted_at.desc())
+            .limit(limit)
+            .all()
+        )
+
+    def get_posts_without_topic_group(self, limit: int = 200) -> list[Post]:
+        """Return posts that haven't been assigned a topic_group yet."""
+        return (
+            self._session.query(Post)
+            .filter(Post.topic_group.is_(None))
             .order_by(Post.posted_at.desc())
             .limit(limit)
             .all()
@@ -291,16 +353,14 @@ class NewsStore:
 
     def get_post_by_url(self, url: str) -> Optional[Post]:
         """Return the first Post matching the given URL, or None."""
-        return (
-            self._session.query(Post)
-            .filter(Post.url == url)
-            .first()
-        )
+        return self._session.query(Post).filter(Post.url == url).first()
 
     def get_post_by_id(self, post_id: int) -> Optional[Post]:
         return self._session.get(Post, post_id)
 
-    def get_post_by_source_and_external_id(self, source: str, external_id: str) -> Optional[Post]:
+    def get_post_by_source_and_external_id(
+        self, source: str, external_id: str
+    ) -> Optional[Post]:
         """Return the Post matching (source, external_id), or None."""
         return (
             self._session.query(Post)
@@ -315,6 +375,21 @@ class NewsStore:
             .filter(Post.source == source, Post.external_id == external_id)
             .first()
         ) is not None
+
+    def get_system_state(self, key: str) -> Optional[str]:
+        row = self._session.get(SystemState, key)
+        return row.value if row else None
+
+    def set_system_state(self, key: str, value: str) -> None:
+        existing = self._session.get(SystemState, key)
+        if existing:
+            existing.value = value
+            existing.updated_at = datetime.now(timezone.utc)
+        else:
+            self._session.add(
+                SystemState(key=key, value=value, updated_at=datetime.now(timezone.utc))
+            )
+        self._session.flush()
 
     def get_last_fetch_at(self) -> Optional[datetime]:
         row = self._session.get(SystemState, _LAST_FETCH_KEY)
@@ -382,10 +457,29 @@ class NewsStore:
     # Internal
     # ------------------------------------------------------------------
 
-    def _apply_filters(self, q, *, label, min_score, from_date, to_date, since, keyword,
-                       source, is_relevant, date_from=None, date_to=None):
+    def _apply_filters(
+        self,
+        q,
+        *,
+        label,
+        min_score,
+        from_date,
+        to_date,
+        since,
+        keyword,
+        source,
+        is_relevant,
+        date_from=None,
+        date_to=None,
+    ):
         if label is not None:
-            q = q.filter(Post.labels.contains(label))
+            encoded = label.encode("unicode_escape").decode()
+            q = q.filter(
+                sa.or_(
+                    Post.labels.contains(label),
+                    Post.labels.contains(encoded),
+                )
+            )
         if min_score is not None:
             q = q.filter(Post.relevance_score >= min_score)
         if from_date is not None:
@@ -399,7 +493,15 @@ class NewsStore:
         if since is not None:
             q = q.filter(Post.posted_at > since)
         if keyword is not None:
-            q = q.filter(Post.content.ilike(f"%{keyword}%"))
+            q = q.filter(
+                sa.or_(
+                    Post.content.ilike(f"%{keyword}%"),
+                    Post.title.ilike(f"%{keyword}%"),
+                    Post.author_handle.ilike(f"%{keyword}%"),
+                    Post.url.ilike(f"%{keyword}%"),
+                    sa.cast(Post.labels, sa.String).ilike(f"%{keyword}%"),
+                )
+            )
         if source is not None:
             q = q.filter(Post.source == source)
         if is_relevant is not None:

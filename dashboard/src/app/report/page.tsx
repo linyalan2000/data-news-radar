@@ -10,11 +10,12 @@ import {
 } from "@/lib/api";
 
 const CATEGORIES = [
-  { key: "all",       label: "全部",        match: null },
-  { key: "ai-agent",  label: "🤖 AI Agent", match: "AI Agent" },
-  { key: "ai-model",  label: "🧠 AI 模型",  match: "AI 模型" },
-  { key: "ai-tool",   label: "🛠 AI 工具",  match: "AI 工具" },
-  { key: "other",     label: "📰 其他",     match: "其他" },
+  { key: "all",         label: "全部",       match: null },
+  { key: "policy",      label: "📋 政策法规", match: "政策法规" },
+  { key: "elements",    label: "💎 数据要素", match: "数据要素" },
+  { key: "ai",          label: "🤖 人工智能",  match: "人工智能" },
+  { key: "digital",     label: "🌐 数智化",   match: "数智化" },
+  { key: "fujian",      label: "📍 福建本地", match: "福建本地" },
 ];
 
 /** Extract the content of one ## section by matching a keyword in the header. */
@@ -33,7 +34,7 @@ function filterSection(content: string, match: string | null): string {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("zh-TW", {
+  return new Date(iso.endsWith("Z") || iso.includes("+") ? iso : iso + "Z").toLocaleDateString("zh-TW", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -121,7 +122,7 @@ export default function ReportPage() {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold">AI 新聞彙整</h2>
+        <h2 className="text-base font-semibold text-gray-900">数据日报</h2>
         <button
           onClick={handleGenerate}
           disabled={generating}
