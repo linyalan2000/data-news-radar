@@ -98,7 +98,7 @@ def generate_and_cache(store, _now=None) -> bool:
     buckets: dict[str, list] = {"national": [], "industry": [], "fujian": []}
     for p in posts:
         s = getattr(p, "summary_zh", None) or ""
-        if not s or s == "不相关" or re.search(r'不相关|未涉及|无法生成|本文不涉及', s):
+        if s and re.search(r'不相关|未涉及|无法生成|本文不涉及', s):
             continue
         buckets[_classify(p)].append(p)
 
