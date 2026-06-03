@@ -19,6 +19,8 @@ from app.schemas import Post as PostSchema
 
 logger = logging.getLogger(__name__)
 
+_MAX_SUMMARY_ITEMS = 5
+
 router = APIRouter(dependencies=[Depends(require_api_key)])
 
 _DAILY_DIR = Path(__file__).resolve().parents[4] / "briefings" / "daily"
@@ -140,7 +142,7 @@ def generate_and_cache(store, _now=None) -> bool:
                 start = i
                 break
             text = "\n".join(lines[start:]).strip()
-            summary = text
+            summary = _clean_daily_summary(text, max_items=_MAX_SUMMARY_ITEMS)
 
             if not _summary_ok(summary):
                 logger.warning("Daily report summary validation failed, using fallback")
@@ -201,11 +203,54 @@ def _summary_ok(text: str) -> bool:
     return True
 
 
+def _clean_daily_summary(text: str, max_items: int = 5) -> str:
+    """Normalize LLM output to clean 'title + body' blocks.
+
+    Keeps only high-signal lines and enforces a compact number of items.
+    """
+    if not text:
+        return ""
+
+    noise_keywords = [
+        "输出格式", "只输出", "不要输出", "分析过程", "筛选理由",
+        "国家部署", "行业动态", "福建本地", "候选", "总结如下", "说明：",
+    ]
+
+    raw_lines = [ln.strip() for ln in text.splitlines()]
+    clean_lines = []
+    for line in raw_lines:
+        if not line:
+            continue
+        if any(kw in line for kw in noise_keywords):
+            continue
+        # Remove common list markers but keep the line content.
+        line = re.sub(r"^\s*(\d+[.)、]|[-*•])\s*", "", line).strip()
+        # Remove markdown heading markers that occasionally leak into output.
+        line = re.sub(r"^#{1,6}\s*", "", line).strip()
+        if not line:
+            continue
+        clean_lines.append(line)
+
+    if len(clean_lines) < 2:
+        return ""
+
+    # Pair every title with the following body line.
+    pairs = []
+    i = 0
+    while i + 1 < len(clean_lines) and len(pairs) < max_items:
+        title = clean_lines[i]
+        body = clean_lines[i + 1]
+        pairs.append(f"{title}\n{body}")
+        i += 2
+
+    return "\n\n".join(pairs).strip()
+
+
 def _build_summary_prompt(sections: dict) -> str:
     lines = [
         "今天数据要素与AI资讯候选如下。请从候选中挑选最重要的新闻生成日报摘要，不要逐条复述全部候选。",
         "挑选标准：优先选择政策权威性高、行业影响大、技术或商业模式有新增量、与福建本地相关性强的新闻。",
-        "输出数量：总共输出3-6条；如果候选不足，可以少于3条。",
+        "输出数量：总共输出3-5条；如果候选不足，可以少于3条。",
     ]
     for section_name, posts in sections.items():
         label = {"national": "【国家部署】", "industry": "【行业动态】", "fujian": "【福建本地】"}.get(section_name, section_name)
@@ -217,5 +262,5 @@ def _build_summary_prompt(sections: dict) -> str:
             lines.append(f"- {title[:60]}")
             if snippet:
                 lines.append(f"  {snippet}")
-    lines.append("\n输出格式：\n新闻标题\n这段新闻的主要内容总结。\n\n只输出中文标题和正文，不要输出栏目名、编号、筛选理由或分析过程。")
+    lines.append("\n输出格式（严格）：\n新闻标题\n这段新闻的主要内容总结。\n\n每条仅两行（标题+正文），条目之间空一行。只输出中文标题和正文，不要输出栏目名、编号、筛选理由或分析过程。")
     return "\n".join(lines)
