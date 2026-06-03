@@ -109,6 +109,9 @@ export default function DailyReportPage() {
     if (!monthGroups[ym]) monthGroups[ym] = [];
     monthGroups[ym].push(d);
   }
+  const sortedMonthGroups = Object.entries(monthGroups)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([ym, days]) => [ym, [...days].sort((a, b) => b.localeCompare(a))] as const);
 
   const sectionColors: Record<string, string> = {
     "国家部署": "border-l-blue-500 bg-blue-50/50",
@@ -147,7 +150,7 @@ export default function DailyReportPage() {
         <nav className="space-y-1">
           {/* Mobile horizontal scroll */}
           <div className="flex lg:flex-col gap-1 overflow-x-auto pb-2 lg:pb-0">
-            {Object.entries(monthGroups).reverse().map(([ym, days]) => (
+            {sortedMonthGroups.map(([ym, days]) => (
               <div key={ym} className="flex lg:block gap-1">
                 <div className="hidden lg:block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1 px-2">
                   {ym}
