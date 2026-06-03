@@ -233,9 +233,10 @@ def _poll_scan(client: httpx.Client, uuid: str, timeout: int = 180) -> bool:
             )
             data = resp.json()
             status = data.get("status") or (data.get("data") or {}).get("status")
-            if status == 1:
+            status = str(status)
+            if status == "1":
                 return True
-            if status == 2:
+            if status == "2":
                 logger.warning("QR code expired, need to restart login")
                 return False
         except Exception as e:

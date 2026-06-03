@@ -22,16 +22,16 @@ def health(db: Session = Depends(get_db)):
         scheduler_ok = sched._scheduler is not None and sched._scheduler.is_alive()
     except Exception:
         scheduler_ok = False
-    wechat_login = Path("/tmp/wechat_login_needed").exists()
-    # 如果标志存在但 Token 实际有效，说明是残留标志
-    if wechat_login:
-        try:
-            from app.fetcher.wechat_client import load_token, is_token_valid
-            if is_token_valid(load_token()):
-                wechat_login = False
-                Path("/tmp/wechat_login_needed").unlink(missing_ok=True)
-        except Exception:
-            pass
+    try:
+        from app.fetcher.wechat_client import load_token, is_token_valid
+
+        wechat_login = not is_token_valid(load_token())
+        if wechat_login:
+            Path("/tmp/wechat_login_needed").touch()
+        else:
+            Path("/tmp/wechat_login_needed").unlink(missing_ok=True)
+    except Exception:
+        wechat_login = Path("/tmp/wechat_login_needed").exists()
     if db_ok:
         return HealthResponse(
             status="ok", db="connected",
